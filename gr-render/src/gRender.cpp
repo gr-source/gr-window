@@ -82,8 +82,13 @@ namespace grr {
             GL_CALL(glClearColor(color->r, color->g, color->b, color->a));
             break;
         }
+        case GR_VIEWPORT: {
+            Vector2* size = (Vector2*)value;
+            GL_CALL(glViewport(0, 0, size->x, size->y));
+            break;
+        }
         default:
-            std::cout << "Invalid type: " << getRenderStateName(state) << std::endl;
+            std::cout << "Invalid V: " << getRenderStateName(state) << std::endl;
             break;
         }
     }
@@ -92,10 +97,10 @@ namespace grr {
         switch (state) {
         case GR_BACKGROUND: {
             GLbitfield filter = 0;
-            if (value & GR_DEPTH_BUFFER) {
+            if ((value & GR_DEPTH_BUFFER) == GR_DEPTH_BUFFER) {
                 filter |= GL_DEPTH_BUFFER_BIT;
             }
-            if (value & GR_COLOR_BUFFER) {
+            if ((value & GR_COLOR_BUFFER) == GR_COLOR_BUFFER) {
                 filter |= GL_COLOR_BUFFER_BIT;
             }
             return GL_CALL(glClear(filter));
@@ -121,19 +126,25 @@ namespace grr {
             return GL_CALL(glDisable(GL_DEPTH_TEST));
         }
         default:
-            std::cout << "Invalid type: " << getRenderStateName(state) << std::endl;
+            std::cout << "Invalid Va: " << getRenderStateName(state) << std::endl;
         }
     }
 
     const std::string gRender::getRenderStateName(RenderState state) {
         #define GET_ENUM_NAME(e) case e: return #e
         switch (state) {
-        GET_ENUM_NAME(GR_BACKGROUND);
-        GET_ENUM_NAME(GR_BACKGROUND_COLOR);
-        GET_ENUM_NAME(GR_COLOR_BUFFER);
-        GET_ENUM_NAME(GR_DEPTH_BUFFER);
         GET_ENUM_NAME(GR_FALSE);
         GET_ENUM_NAME(GR_TRUE);
+        GET_ENUM_NAME(GR_BACKGROUND_COLOR);
+        GET_ENUM_NAME(GR_BACKGROUND);
+        GET_ENUM_NAME(GR_DEPTH_BUFFER);
+        GET_ENUM_NAME(GR_COLOR_BUFFER);
+        GET_ENUM_NAME(GR_CULL_FACE);
+        GET_ENUM_NAME(GR_CULL);
+        GET_ENUM_NAME(GR_FRONT);
+        GET_ENUM_NAME(GR_BACK);
+        GET_ENUM_NAME(GR_DEPTH);
+        GET_ENUM_NAME(GR_VIEWPORT);
         default:
             return "undefined";
         }

@@ -17,14 +17,19 @@ std::vector<Vertex2D> vertex2D {
     {Vector2( 0.5, -0.5)}
 };
 
-void render() {
+float r =0;
+void Iddle() {
+    r += 3.0f;
+    r = std::fmod(r, 360.0f);
+
     Vector2 centerScreen(m_width / 2.0f, m_height / 2.0f);
 
+    Quaternion rotate = Math::normalize(Math::euler({Math::rad(r), Math::rad(r), 0.0f}));
 
     Matrix3x3 model =
-        Math::translate<Matrix3x3>(centerScreen) *
-        Math::rotate<Matrix3x3>(Quaternion::identity) *
-        Math::scale<Matrix3x3>(Vector2(64, 64));
+        Math::scale<Matrix3x3>(Vector2(64, 64)) * 
+        Math::rotate<Matrix3x3>(rotate) *
+        Math::translate<Matrix3x3>(centerScreen);
 
     std::vector<Vertex2D> vertices;
     
@@ -32,17 +37,19 @@ void render() {
         vertices.push_back({model * Vector3(v.position, 1.0f)});
     }
 
+    Vector2 screenSize(m_width, m_height);
+
     gRender::SetRenderState(GR_BACKGROUND_COLOR, (void*)&gColor::black);
     gRender::SetRenderState(GR_BACKGROUND, GR_COLOR_BUFFER);
+    gRender::SetRenderState(GR_VIEWPORT, (void*)&screenSize);
 
     gRender::Render2D();
-    
-    gRender::RenderPrimitive2D(PrimitiveType_Triangles, vertices.size(), vertices.data());
 
+    gRender::RenderPrimitive2D(PrimitiveType_Triangles, vertices.size(), vertices.data());
     glutSwapBuffers();
 }
 
-void WindowShape(int width, int height) {
+void framebufferSize(int width, int height) {
     m_width = width;
     m_height = height;
     gRender::SetResolution(width, height);
@@ -60,8 +67,10 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    glutDisplayFunc(render);
-    glutReshapeFunc(WindowShape);
+    glutIdleFunc(Iddle);
+
+    // glutDisplayFunc(render);
+    glutReshapeFunc(framebufferSize);
 
     glutMainLoop();
     return 0;
