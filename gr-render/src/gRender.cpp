@@ -171,11 +171,11 @@ namespace grr {
 
             glGenBuffers(1, &ebo2D);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo2D);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, 1000 * sizeof(u32), nullptr, GL_STATIC_DRAW);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, 999999 * sizeof(u32), nullptr, GL_STATIC_DRAW);
 
             glGenBuffers(1, &vbo2D);
             glBindBuffer(GL_ARRAY_BUFFER, vbo2D);
-            glBufferData(GL_ARRAY_BUFFER, 1000 * sizeof(Vertex2D), nullptr, GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, 999999 * sizeof(Vertex2D), nullptr, GL_STATIC_DRAW);
 
             glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), reinterpret_cast<void*>(offsetof(Vertex2D, position)));
             glEnableVertexAttribArray(0);
@@ -195,11 +195,11 @@ namespace grr {
 
             glGenBuffers(1, &ebo3D);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo3D);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, 1000 * sizeof(u32), nullptr, GL_STATIC_DRAW);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, 999999 * sizeof(u32), nullptr, GL_STATIC_DRAW);
 
             glGenBuffers(1, &vbo3D);
             glBindBuffer(GL_ARRAY_BUFFER, vbo3D);
-            glBufferData(GL_ARRAY_BUFFER, 1000 * sizeof(Vertex3D), nullptr, GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, 999999 * sizeof(Vertex3D), nullptr, GL_STATIC_DRAW);
 
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(offsetof(Vertex3D, position)));
             glEnableVertexAttribArray(0);

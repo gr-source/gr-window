@@ -83,18 +83,36 @@ std::vector<u32> indices3D {
     3, 1, 5
 };
 
+float ms = 0;
+static int itemCount = 0;
+
 void render() {
     Time::deltaTime = timer.SleepTick();
 
-    Matrix4x4 model =
-        Math::scale<Matrix4x4>(Vector3::one) * 
-        Math::rotate<Matrix4x4>(Quaternion::identity) *
-        Math::translate<Matrix4x4>(Vector3::zero);
-
     std::vector<Vertex3D> vertices;
+    std::vector<u32> indices;
 
-    for (const auto& v : vertex3D) {
-        vertices.push_back({model * Vector4(v.position, 1.0f)});
+    Vector3 center;
+
+
+    for (int x=0;x<50;x++) {
+        for (int z=0;z<50;z++) {
+            Vector3 position(center.x + x * 2.5f, 0.0f, center.z + z * 2.5f);
+
+            Matrix4x4 model =
+                Math::scale<Matrix4x4>(Vector3::one) * 
+                Math::rotate<Matrix4x4>(Quaternion::identity) *
+                Math::translate<Matrix4x4>(position);
+
+
+            for (const auto& v : vertex3D) {
+                vertices.push_back({model * Vector4(v.position, 1.0f)});
+            }
+            for (const auto& i : indices3D) {
+                indices.push_back(vertices.size() + i);
+            }
+            itemCount++;
+        }
     }
 
     Vector2 screenSize(m_width, m_height);  
@@ -117,7 +135,17 @@ void render() {
 
     gRender::Render3D(projection, view);
 
-    gRender::RenderIndexedPrimitive3D(PrimitiveType_Triangles, vertices.size(), vertices.data(), indices3D.size(), indices3D.data());
+    gRender::RenderIndexedPrimitive3D(PrimitiveType_Triangles, vertices.size(), vertices.data(), indices.size(), indices.data());
+
+    std::cout << timer.getFPS() << " Objects: " << itemCount << std::endl;
+
+    itemCount = 0;
+
+    ms += Time::deltaTime;
+    if (ms >= 1.f) {
+        ms = 0;
+        itemCount = 0;
+    }
 
     glutSwapBuffers();
 }
@@ -149,3 +177,4 @@ int main(int argc, char** argv) {
     glutMainLoop();
     return 0;
 }
+    
