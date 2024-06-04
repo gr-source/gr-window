@@ -39,10 +39,12 @@ namespace grr {
     const char* fragmentShader3D = R"(
         #version 330 core
 
+        in vec3 m_fragPos;
+
         out vec4 FragColor;
 
         void main() {
-            FragColor = vec4(1.0);
+            FragColor = vec4(m_fragPos, 1.0);
         }
     )";
 
@@ -51,11 +53,15 @@ namespace grr {
 
         layout (location = 0) in vec3 in_pos;
 
+        out vec3 m_fragPos;
+
         uniform mat4 projection;
         uniform mat4 view;
 
         void main() {
             gl_Position = projection * view * vec4(in_pos, 1.0);
+
+            m_fragPos = in_pos;
         }
     )";
 
@@ -93,7 +99,7 @@ namespace grr {
         }
     }
 
-    void gRender::SetRenderState(RenderState state, u8 value) {
+    void gRender::SetRenderState(RenderState state, u16 value) {
         switch (state) {
         case GR_BACKGROUND: {
             GLbitfield filter = 0;
@@ -220,30 +226,6 @@ namespace grr {
     }
 
     void gRender::RenderTexture2D(const Matrix3x3 &model, gTexture *texture) {
-        std::vector<Vertex2D> vertex2D {
-            {Vector2(-1.0f,  1.0f), Vector2(0.0f, 1.0f)}, // Top-left vertex
-            {Vector2( 1.0f,  1.0f), Vector2(1.0f, 1.0f)}, // Top-right vertex
-            {Vector2(-1.0f, -1.0f), Vector2(0.0f, 0.0f)}, // Bottom-left vertex
-            {Vector2( 1.0f, -1.0f), Vector2(1.0f, 0.0f)}  // Bottom-right vertex
-        };
-
-        std::vector<u32> indices2D {
-            0, 2, 1,
-            1, 2, 3
-        };
-
-        std::vector<Vertex2D> vertices;
-
-        for (const auto& v : vertex2D) {
-            vertices.push_back({model * Vector3(v.position), v.uv});
-        }
-
-        glBindTexture(GL_TEXTURE_2D, texture->getIndex());
-        glActiveTexture(GL_TEXTURE0);
-
-        m_shader2D->SetUniformInt("m_texture", 0);
-
-        gRender::RenderIndexedPrimitive2D(PrimitiveType_Triangles, vertices.size(), vertices.data(), indices2D.size(), indices2D.data());
     }
 
 

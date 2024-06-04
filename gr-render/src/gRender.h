@@ -44,7 +44,7 @@ namespace grr {
 
         static void SetRenderState(RenderState state, void* value);
 
-        static void SetRenderState(RenderState state, u8 value);
+        static void SetRenderState(RenderState state, u16 value);
 
         static const std::string getRenderStateName(RenderState state);
 

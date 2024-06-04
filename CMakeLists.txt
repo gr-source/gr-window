@@ -7,7 +7,7 @@ add_subdirectory(gr-render)
 
 find_package(GLUT REQUIRED)
 
-add_executable(gr-window main.cpp)
+add_executable(gr-window main.cpp timer.cpp)
 
 
 target_include_directories(${PROJECT_NAME} PRIVATE gr-render/src)
