@@ -75,6 +75,11 @@ namespace grr {
         {PrimitiveType_TriangleFan, GL_TRIANGLE_FAN}
     };
 
+    std::unordered_map<BufferBindingTarget, u32> gRender::m_bufferMap {
+        {BufferBindingTarget::GR_ARRAY_BUFFER, GL_ARRAY_BUFFER},
+        {BufferBindingTarget::GR_ELEMENT_ARRAY_BUFFER, GL_ELEMENT_ARRAY_BUFFER}
+    };
+
     gShader* gRender::m_shader2D = nullptr;
     gShader* gRender::m_shader3D = nullptr;
 
@@ -161,54 +166,17 @@ namespace grr {
     u32 vao3D, vbo3D, ebo3D;
 
     const bool gRender::OpenGLInit() {
+        #ifdef GR_OPENGLES3
         if (glewInit() != GLEW_OK) {
             return false;
         }
+        #endif
 
-        {
-            glGenVertexArrays(1, &vao2D);
-            glBindVertexArray(vao2D);
+        CreateVertexArray2D();
+        m_shader2D = gShader::Create({fragmentShader2D}, {vertexShader2D});
 
-            glGenBuffers(1, &ebo2D);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo2D);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, 999999 * sizeof(u32), nullptr, GL_STATIC_DRAW);
-
-            glGenBuffers(1, &vbo2D);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo2D);
-            glBufferData(GL_ARRAY_BUFFER, 999999 * sizeof(Vertex2D), nullptr, GL_STATIC_DRAW);
-
-            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), reinterpret_cast<void*>(offsetof(Vertex2D, position)));
-            glEnableVertexAttribArray(0);
-
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), reinterpret_cast<void*>(offsetof(Vertex2D, uv)));
-            glEnableVertexAttribArray(1);
-
-            glBindVertexArray(0);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-            m_shader2D = gShader::Create({fragmentShader2D}, {vertexShader2D});
-        }
-
-        {
-            glGenVertexArrays(1, &vao3D);
-            glBindVertexArray(vao3D);
-
-            glGenBuffers(1, &ebo3D);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo3D);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, 999999 * sizeof(u32), nullptr, GL_STATIC_DRAW);
-
-            glGenBuffers(1, &vbo3D);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo3D);
-            glBufferData(GL_ARRAY_BUFFER, 999999 * sizeof(Vertex3D), nullptr, GL_STATIC_DRAW);
-
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(offsetof(Vertex3D, position)));
-            glEnableVertexAttribArray(0);
-
-            glBindVertexArray(0);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-            m_shader3D = gShader::Create({fragmentShader3D}, {vertexShader3D});
-        }
+        CreateVertexArray3D();
+        m_shader3D = gShader::Create({fragmentShader3D}, {vertexShader3D});
 
         return true;
     }
@@ -228,29 +196,25 @@ namespace grr {
     void gRender::RenderTexture2D(const Matrix3x3 &model, gTexture *texture) {
     }
 
-
     void gRender::RenderPrimitive2D(PrimitiveType primitive, u32 numVertice, void *vertice) {
-        glBindVertexArray(vao2D);
+        GL_CALL(glBindVertexArray(vao2D));
 
-        glBindBuffer(GL_ARRAY_BUFFER, vbo2D);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, numVertice * sizeof(Vertex2D), vertice);
+        GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo2D));
+        GL_CALL(glBufferSubData(GL_ARRAY_BUFFER, 0, numVertice * sizeof(Vertex2D), vertice));
         
         GL_CALL(glDrawArrays(m_primitiveMap[primitive], 0, numVertice));
-
-        glBindVertexArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
     void gRender::RenderIndexedPrimitive2D(PrimitiveType primitive, u32 numVertice, void *vertice, u32 numIndice, void *indice) {
-        glBindVertexArray(vao2D);
+        GL_CALL(glBindVertexArray(vao2D));
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo2D);
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, numIndice * sizeof(u32), indice);
+        GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo2D));
+        GL_CALL(glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, numIndice * sizeof(u32), indice));
 
-        glBindBuffer(GL_ARRAY_BUFFER, vbo2D);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, numVertice * sizeof(Vertex2D), vertice);
+        GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo2D));
+        GL_CALL(glBufferSubData(GL_ARRAY_BUFFER, 0, numVertice * sizeof(Vertex2D), vertice));
 
-        glDrawElements(m_primitiveMap[primitive], numIndice, GL_UNSIGNED_INT, nullptr);
+        GL_CALL(glDrawElements(m_primitiveMap[primitive], numIndice, GL_UNSIGNED_INT, nullptr));
     }
 
     void gRender::Render3D(const Matrix4x4& projection, const Matrix4x4& view) {
@@ -260,24 +224,30 @@ namespace grr {
     }
 
     void gRender::RenderPrimitive3D(PrimitiveType primitive, u32 numVertice, void *vertice) {
-        glBindVertexArray(vao3D);
+        GL_CALL(glBindVertexArray(vao3D));
 
-        glBindBuffer(GL_ARRAY_BUFFER, vbo3D);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, numVertice * sizeof(Vertex3D), vertice);
+        GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo3D));
+        GL_CALL(glBufferSubData(GL_ARRAY_BUFFER, 0, numVertice * sizeof(Vertex3D), vertice));
 
-        glDrawArrays(m_primitiveMap[primitive], 0, numVertice);
+        GL_CALL(glDrawArrays(m_primitiveMap[primitive], 0, numVertice));
     }
 
     void gRender::RenderIndexedPrimitive3D(PrimitiveType primitive, u32 numVertice, void *vertice, u32 numIndice, void *indice) {
-        glBindVertexArray(vao3D);
+        // Use o vão 
+        GL_CALL(glBindVertexArray(vao3D));
 
-        glBindBuffer(GL_ARRAY_BUFFER, vbo3D);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, numVertice * sizeof(Vertex3D), vertice);
+        // element buffer
+        GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo3D));
+        ReizeBuffer(GR_ELEMENT_ARRAY_BUFFER, sizeof(u32), numIndice);
+        GL_CALL(glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, numIndice * sizeof(u32), indice));
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo3D);
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, numIndice * sizeof(u32), indice);
+        // array buffer
+        GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo3D));
+        ReizeBuffer(GR_ARRAY_BUFFER, sizeof(Vertex3D), numVertice);
+        GL_CALL(glBufferSubData(GL_ARRAY_BUFFER, 0, numVertice * sizeof(Vertex3D), vertice));
 
-        glDrawElements(m_primitiveMap[primitive], numIndice, GL_UNSIGNED_INT, nullptr);
+        // draw
+        GL_CALL(glDrawElements(m_primitiveMap[primitive], numIndice, GL_UNSIGNED_INT, nullptr));
     }
 
     void gRender::OpenGLShutsown() {
@@ -286,6 +256,60 @@ namespace grr {
         }
         if (m_shader3D) {
             m_shader3D->destroy();
+        }
+    }
+
+    void gRender::CreateVertexArray2D() {
+        GL_CALL(glGenVertexArrays(1, &vao2D));
+        GL_CALL(glBindVertexArray(vao2D));
+
+        GL_CALL(glGenBuffers(1, &ebo2D));
+        GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo2D));
+        GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_BLOCK_BUFFER * sizeof(u32), nullptr, GL_STATIC_DRAW));
+
+        GL_CALL(glGenBuffers(1, &vbo2D));
+        GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo2D));
+        GL_CALL(glBufferData(GL_ARRAY_BUFFER, MAX_BLOCK_BUFFER * sizeof(Vertex2D), nullptr, GL_STATIC_DRAW));
+
+        GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), reinterpret_cast<void*>(offsetof(Vertex2D, position))));
+        GL_CALL(glEnableVertexAttribArray(0));
+
+        GL_CALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex2D), reinterpret_cast<void*>(offsetof(Vertex2D, uv))));
+        GL_CALL(glEnableVertexAttribArray(1));
+
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
+    void gRender::CreateVertexArray3D() {
+        GL_CALL(glGenVertexArrays(1, &vao3D));
+        GL_CALL(glBindVertexArray(vao3D));
+
+        GL_CALL(glGenBuffers(1, &ebo3D));
+        GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo3D));
+        GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_BLOCK_BUFFER * sizeof(u32), nullptr, GL_STATIC_DRAW));
+
+        GL_CALL(glGenBuffers(1, &vbo3D));
+        GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo3D));
+        GL_CALL(glBufferData(GL_ARRAY_BUFFER, MAX_BLOCK_BUFFER * sizeof(Vertex3D), nullptr, GL_STATIC_DRAW));
+
+        GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex3D), reinterpret_cast<void*>(offsetof(Vertex3D, position))));
+        GL_CALL(glEnableVertexAttribArray(0));
+
+        GL_CALL(glBindVertexArray(0));
+        GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
+    }
+
+    void gRender::ReizeBuffer(BufferBindingTarget target, u16 stride, u32 size) {
+        int arraySize = 0;
+        GL_CALL(glGetBufferParameteriv(m_bufferMap[target], GL_BUFFER_SIZE,  &arraySize));
+        arraySize = (arraySize / stride);
+        
+        while (size > arraySize) {
+            GL_CALL(glBufferData(m_bufferMap[target], arraySize * stride + MAX_BLOCK_BUFFER * stride, nullptr, GL_STATIC_DRAW));
+
+            GL_CALL(glGetBufferParameteriv(m_bufferMap[target], GL_BUFFER_SIZE,  &arraySize));
+            arraySize = (arraySize / stride);
         }
     }
 }

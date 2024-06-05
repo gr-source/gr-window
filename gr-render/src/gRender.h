@@ -1,8 +1,14 @@
 #pragma once
 
 #include "common.h"
-
 #include "gColor.h"
+
+#include <sstream>
+#include <iomanip>
+#include <string>
+
+#define MAX_BLOCK_BUFFER 1024
+#define GR_OPENGLES3 0
 
 namespace grr {
     enum RenderState : u16 {
@@ -28,6 +34,19 @@ namespace grr {
         PrimitiveType_Triangles = 4,
         PrimitiveType_TriangleStrip = 5,
         PrimitiveType_TriangleFan = 6
+    };
+
+    enum BufferBindingTarget {
+        GR_ARRAY_BUFFER              = 1 << 1,
+        // GR_COPY_READ_BUFFER          = 1 << 3,
+        // GR_COPY_WRITE_BUFFER         = 1 << 4,
+        // GR_DRAW_INDIRECT_BUFFER      = 1 << 5,
+        GR_ELEMENT_ARRAY_BUFFER      = 1 << 6,
+        // GR_PIXEL_PACK_BUFFER         = 1 << 7,
+        // GR_PIXEL_UNPACK_BUFFER       = 1 << 8,
+        // GR_TEXTURE_BUFFER            = 1 << 11, // OpenGL ES 3.1
+        // GR_TRANSFORM_FEEDBACK_BUFFER = 1 << 12,
+        // GR_UNIFORM_BUFFER            = 1 << 13,
     };
 
     struct Vertex2D {
@@ -68,6 +87,7 @@ namespace grr {
 
         static void OpenGLShutsown();
     private:
+        static std::unordered_map<BufferBindingTarget, u32> m_bufferMap;
         static std::unordered_map<PrimitiveType, u32> m_primitiveMap;
 
         static gShader* m_shader2D;
@@ -75,5 +95,11 @@ namespace grr {
 
         static u32 m_height;
         static u32 m_width;
+
+        static void CreateVertexArray2D();
+
+        static void CreateVertexArray3D();
+
+        static void ReizeBuffer(BufferBindingTarget target, u16 stride, u32 size);
     };
 }

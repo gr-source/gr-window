@@ -1,5 +1,7 @@
 project("gr-render")
 
+option(GR_COMPILE_LINUX "Compile for Linux" ON)
+
 set(render_src
     src/gTexture.cpp
     src/gRender.cpp
@@ -18,13 +20,11 @@ set(render_hdr
 
 add_library(grender STATIC ${render_src} ${render_hdr})
 
-option(GR_COMPILE_LINUX "Compile on Android" OFF)
-
 find_package(gr-math REQUIRED)
 
 target_link_libraries(grender PRIVATE ${GRMATH_LIBRARIES})
 
-if(NOT GR_COMPILE_LINUX)
+if(GR_COMPILE_LINUX)
     option(GR_USE_GLEW "Use glw" ON)
 
     if(GR_USE_GLEW)

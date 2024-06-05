@@ -86,17 +86,16 @@ std::vector<u32> indices3D {
 float ms = 0;
 static int itemCount = 0;
 
-void render() {
-    Time::deltaTime = timer.SleepTick();
+std::vector<Vertex3D> vertices;
+std::vector<u32> indices;
 
-    std::vector<Vertex3D> vertices;
-    std::vector<u32> indices;
-
+void init() {
     Vector3 center;
 
+    u32 vertexCount = 0;
 
-    for (int x=0;x<50;x++) {
-        for (int z=0;z<50;z++) {
+    for (int x=0;x<150;x++) {
+        for (int z=0;z<150;z++) {
             Vector3 position(center.x + x * 2.5f, 0.0f, center.z + z * 2.5f);
 
             Matrix4x4 model =
@@ -109,11 +108,16 @@ void render() {
                 vertices.push_back({model * Vector4(v.position, 1.0f)});
             }
             for (const auto& i : indices3D) {
-                indices.push_back(vertices.size() + i);
+                indices.push_back(vertexCount + i);
             }
+            vertexCount += vertex3D.size();
             itemCount++;
         }
     }
+}
+
+void render() {
+    Time::deltaTime = timer.SleepTick();
 
     Vector2 screenSize(m_width, m_height);  
 
@@ -137,14 +141,9 @@ void render() {
 
     gRender::RenderIndexedPrimitive3D(PrimitiveType_Triangles, vertices.size(), vertices.data(), indices.size(), indices.data());
 
-    std::cout << timer.getFPS() << " Objects: " << itemCount << std::endl;
-
-    itemCount = 0;
-
     ms += Time::deltaTime;
     if (ms >= 1.f) {
         ms = 0;
-        itemCount = 0;
     }
 
     glutSwapBuffers();
@@ -167,6 +166,8 @@ int main(int argc, char** argv) {
         std::cout << "Falied opennable gr-render" << std::endl;
         return 1;
     }
+
+    init();
 
     glutMotionFunc(motion);
     glutMouseFunc(MouseButton);
