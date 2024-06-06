@@ -166,7 +166,7 @@ namespace grr {
     u32 vao3D, vbo3D, ebo3D;
 
     const bool gRender::OpenGLInit() {
-        #ifdef GR_OPENGLES3
+        #if !GR_OPENGLES3
         if (glewInit() != GLEW_OK) {
             return false;
         }

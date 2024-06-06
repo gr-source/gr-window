@@ -2,7 +2,11 @@
 
 #include "common.h"
 
+#if GR_OPENGLES3
+#include <GLES3/gl3.h>
+#else
 #include <GL/glew.h>
+#endif
 
 namespace grr {
     const char* get_enum_name(GLenum err);

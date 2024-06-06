@@ -8,7 +8,6 @@
 #include <string>
 
 #define MAX_BLOCK_BUFFER 1024
-#define GR_OPENGLES3 0
 
 namespace grr {
     enum RenderState : u16 {

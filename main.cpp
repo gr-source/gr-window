@@ -5,7 +5,6 @@
 #include <gRender.h>
 #include <GL/glut.h>
 
-
 using namespace grr;
 
 u32 m_width, m_height;
@@ -49,12 +48,15 @@ void motion(int x, int y) {
     mousePos.y = std::max(std::min(mousePos.y, 89.0f), -89.0f);
     mousePos.x = std::fmod(mousePos.x, 360.0f);
     startMousePos = curr;
+
+    glutPostRedisplay();
 }
 
 void MouseButton(int button, int state, int x, int y) {
     if (button == 0 && state == 0) {
         startMousePos = {(float)x, (float)y};
     }
+
 }
 
 std::vector<Vertex3D> vertex3D {
@@ -102,7 +104,6 @@ void init() {
                 Math::scale<Matrix4x4>(Vector3::one) * 
                 Math::rotate<Matrix4x4>(Quaternion::identity) *
                 Math::translate<Matrix4x4>(position);
-
 
             for (const auto& v : vertex3D) {
                 vertices.push_back({model * Vector4(v.position, 1.0f)});
@@ -169,11 +170,13 @@ int main(int argc, char** argv) {
 
     init();
 
+    glutDisplayFunc(render);
+
     glutMotionFunc(motion);
     glutMouseFunc(MouseButton);
     glutKeyboardFunc(Keyboard);
     glutReshapeFunc(framebufferSize);
-    glutIdleFunc(render);
+    // glutIdleFunc(render);
 
     glutMainLoop();
     return 0;
