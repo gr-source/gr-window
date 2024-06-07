@@ -27,7 +27,7 @@ namespace grr {
 
         while ((err = glGetError()) != GL_NO_ERROR) {
             numErrors++;
-            std::cout << "Opengl error: " << name << "(" << numErrors << ")" << std::endl;
+            std::cout << "Opengl error: " << name << "(" << get_enum_name(err) << ")" << std::endl;
         }
     }
 } // namespace grr

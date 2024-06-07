@@ -31,8 +31,15 @@ namespace grr {
 
         in vec2 m_texCoord;
 
+        uniform sampler2D u_texture;
+
         void main() {
-            FragColor = vec4(1.0);
+            vec4 color = texture(u_texture, m_texCoord);
+            if (color.a < 0.1) {
+                discard;
+            }
+            
+            FragColor = color;
         }
     )";
 
