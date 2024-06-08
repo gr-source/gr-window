@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include "gCommon.h"
 
 #if GR_OPENGLES3
 #include <GLES3/gl3.h>

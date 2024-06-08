@@ -3,6 +3,7 @@ project("gr-render")
 option(GR_COMPILE_LINUX "Compile for Linux" ON)
 
 set(render_src
+    src/gVertexArray.cpp
     src/gTexture.cpp
     src/gRender.cpp
     src/gShader.cpp
@@ -10,12 +11,15 @@ set(render_src
 )
 
 set(render_hdr
+    src/gVertexArray.h
+    src/gVertex2D.h
+    src/gVertex3D.h
     src/gTexture.h
     src/gRender.h
     src/gShader.h
-    src/common.h
+    src/gCommon.h
     src/gColor.h
-    src/types.h
+    src/gTypes.h
 )
 
 add_library(grender STATIC ${render_src} ${render_hdr})

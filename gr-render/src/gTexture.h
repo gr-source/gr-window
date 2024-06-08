@@ -1,20 +1,8 @@
 #pragma once
 
-#include "common.h"
+#include "gCommon.h"
 
 namespace grr {
-    enum TextureFormat : u16 {
-        TextureFormat_RGB = 1 << 1,
-        TextureFormat_RGB332 = 1 << 2,
-        TextureFormat_RGB444 = 1 << 3,
-        TextureFormat_RGB565 = 1 << 4,
-        TextureFormat_RGB888 = 1 << 5,
-
-        TextureFormat_RGBA = 1 << 8,
-        TextureFormat_RGBA4444 = 1 << 9,
-        TextureFormat_RGBA8888 = 1 << 10
-    };
-
     class gTexture {
     public:
         gTexture();

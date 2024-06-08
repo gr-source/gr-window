@@ -2,14 +2,9 @@
 
 #include <iostream>
 
-#include <gTexture.h>
 #include <gRender.h>
-#include <gShader.h>
-
 #include <GL/glut.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 
 using namespace grr;
 
@@ -25,18 +20,44 @@ Vector3 right;
 Vector3 camPos(0.0f, 0.0f, -5.0f);
 
 void Keyboard(unsigned char key, int x, int y) {
+    if (key == 'w') {
+       camPos += forward * 10.0f * Time::deltaTime;
+    }
+    if (key == 's') {
+        camPos -= forward * 10.0f * Time::deltaTime;
+    }
+    if (key == 'a') {
+        camPos += right * 10.0f * Time::deltaTime;
+    }
+    if (key == 'd') {
+        camPos -= right * 10.0f * Time::deltaTime;
+    }
+
+    glutPostRedisplay();
 }
 
 Vector2 mousePos;
 Vector2 startMousePos;
 
 void motion(int x, int y) {
+    Vector2 curr((float)x, (float)y);
+
+    Vector2 direction = Math::normalize(curr - startMousePos);
+
+    mousePos += direction * 1.1f;
+
+    mousePos.y = std::max(std::min(mousePos.y, 89.0f), -89.0f);
+    mousePos.x = std::fmod(mousePos.x, 360.0f);
+    startMousePos = curr;
 }
 
 void MouseButton(int button, int state, int x, int y) {
+    if (button == 0 && state == 0) {
+        startMousePos = {(float)x, (float)y};
+    }
 }
 
-std::vector<Vertex3D> vertex3D {
+std::vector<gVertex3D> vertex3D {
     {Vector3(-1.0f, -1.0f,  1.0f)},
     {Vector3(-1.0f,  1.0f,  1.0f)},
     {Vector3(-1.0f, -1.0f, -1.0f)},
@@ -65,31 +86,33 @@ std::vector<u32> indices3D {
 float ms = 0;
 static int itemCount = 0;
 
-std::vector<Vertex2D> vertex2D {
-    {Vector2(-0.5,  0.5), Vector2(0.0, 1.0)},
-    {Vector2(-0.5, -0.5), Vector2(0.0, 0.0)},
-    {Vector2( 0.5,  0.5), Vector2(1.0, 1.0)},
-    {Vector2( 0.5,  0.5), Vector2(1.0, 1.0)},
-    {Vector2(-0.5, -0.5), Vector2(0.0, 0.0)},
-    {Vector2( 0.5, -0.5), Vector2(1.0, 0.0)} 
-};
-
-Matrix3x3 model = Matrix4x4::identityMatrix;
-
-
-gTexture* texture = nullptr;
+std::vector<gVertex3D> vertices;
+std::vector<u32> indices;
 
 void init() {
-    Vector2 screenSize(m_width, m_height);  
+    Vector3 center = {};
 
-    int x, y, ch;
-    void* pixels = stbi_load("/home/grsource/Downloads/Sponza/VasePlant_diffuse.png", &x, &y, &ch, 0);
+    u32 vertexCount = 0;
 
-    std::cout << ch << std::endl;
+    for (int x=0;x<150;x++) {
+        for (int z=0;z<150;z++) {
+            Vector3 position(center.x + x * 2.5f, 0.0f, center.z + z * 2.5f);
 
-    texture = gTexture::Create(x, y, TextureFormat_RGBA, pixels);
+            Matrix4x4 model =
+                Math::translate<Matrix4x4>(position) *
+                Math::rotate<Matrix4x4>(Quaternion::identity) *
+                Math::scale<Matrix4x4>(Vector3::one);
 
-    stbi_image_free(pixels);
+            for (const auto& v : vertex3D) {
+                vertices.push_back({model * Vector4(v.position, 1.0f)});
+            }
+            for (const auto& i : indices3D) {
+                indices.push_back(vertexCount + i);
+            }
+            vertexCount += vertex3D.size();
+            itemCount++;
+        }
+    }
 }
 
 void render() {
@@ -97,37 +120,30 @@ void render() {
 
     Vector2 screenSize(m_width, m_height);  
 
-    std::vector<Vertex2D> vertices;
+    Quaternion rotation = Math::normalize(Math::euler({Math::rad(mousePos.y), Math::rad(-mousePos.x), 0.0f}));
 
-    static float r = 0;
-    r += 95.0f * Time::deltaTime;
+    forward = rotation * Vector3::forward;
+    right = rotation * Vector3::right;
+    Vector3 up = rotation * Vector3::up;
 
-    r = std::fmod(r, 360.0f);
-
-    model = Math::translate<Matrix3x3>(screenSize / 2.0f) *
-        Math::rotate<Matrix3x3>(Math::euler({0.0f, 0.0f, Math::rad(r)})) *
-        Math::scale<Matrix3x3>(Vector2(r / 3, r / 3));
-
-    for (const auto& v : vertex2D) {
-        vertices.push_back({Vector2(model * Vector3(v.position, 1.0f)), v.uv});
-    }
+    Matrix4x4 projection = Math::perspective(Math::rad(90.0f), ((float)m_width / m_height), 1000.0f, 0.01f);
+    Matrix4x4 view = Math::lookAt(camPos, camPos + forward, up);
 
     gRender::SetRenderState(GR_BACKGROUND_COLOR, (void*)&gColor::black);
-    gRender::SetRenderState(GR_BACKGROUND, GR_COLOR_BUFFER);
+    gRender::SetRenderState(GR_BACKGROUND, GR_COLOR_BUFFER | GR_DEPTH_BUFFER);
     gRender::SetRenderState(GR_VIEWPORT, (void*)&screenSize);
+    gRender::SetRenderState(GR_DEPTH, GR_TRUE);
     gRender::SetRenderState(GR_CULL_FACE, GR_TRUE);
     gRender::SetRenderState(GR_CULL, GR_BACK);
 
-    gRender::Render2D();
+    gRender::Render3D(projection, view);
 
-    if (texture->isValid()) {
-        u32 textureIndex = 0;
+    gRender::RenderIndexedPrimitive3D(PrimitiveType_Triangles, vertices.size(), vertices.data(), indices.size(), indices.data());
 
-        texture->bind();
-        gShader::SetUniform("u_texture", reinterpret_cast<const int*>(&textureIndex));
+    ms += Time::deltaTime;
+    if (ms >= 1.f) {
+        ms = 0;
     }
-
-    gRender::RenderPrimitive2D(PrimitiveType_Triangles, vertices.size(), vertices.data());
 
     glutSwapBuffers();
 }
@@ -151,8 +167,6 @@ int main(int argc, char** argv) {
     }
 
     init();
-
-    // glutDisplayFunc(render);
 
     glutMotionFunc(motion);
     glutMouseFunc(MouseButton);

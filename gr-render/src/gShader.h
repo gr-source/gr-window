@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include "gCommon.h"
 
 namespace grr {
     class gShader {
