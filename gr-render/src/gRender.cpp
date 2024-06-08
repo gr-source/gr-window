@@ -209,12 +209,6 @@ namespace grr {
         gVertexArray::UpdateResize(indexPrimi3D, numPrim, sizeof(Matrix4x4));
         gVertexArray::SetBufferUpdate(indexPrimi3D, 0, numPrim * sizeof(Matrix4x4), prim);
 
-        for (int i = 0; i < 4; ++i) {
-            glEnableVertexAttribArray(1 + i);
-            glVertexAttribPointer(1 + i, 4, GL_FLOAT, GL_FALSE, sizeof(Matrix4x4), (GLvoid*)( sizeof(Vector4) * i));
-            glVertexAttribDivisor(1 + i, 1);
-        }
-
         gVertexArray::DrawElementsInstanced(PrimitiveType_Triangles, numIndice, nullptr, numPrim);
     }
 
@@ -246,7 +240,7 @@ namespace grr {
 
         for (int i = 0; i < 4; ++i) {
             glEnableVertexAttribArray(1 + i);
-            glVertexAttribPointer(1 + i, 4, GL_FLOAT, GL_FALSE, sizeof(Matrix4x4), (GLvoid*)(sizeof(Matrix4x4) * i));
+            glVertexAttribPointer(1 + i, 4, GL_FLOAT, GL_FALSE, sizeof(Matrix4x4), (GLvoid*)(sizeof(Vector4) * i));
             glVertexAttribDivisor(1 + i, 1);
         }
 
