@@ -57,9 +57,10 @@ namespace grr {
         TextureFormat_RGBA8888 = 1 << 10
     };
 
-    enum VertexArray : u32 {
-        GR_VBO = 1 << 1,
-        GR_EBO = 1 << 2
+    enum BufferType : u32 {
+        BufferType_VBO = 1 << 1,
+        BufferType_EBO = 1 << 2,
+        BufferType_DEFAULT = 1 << 1
     };
 
     enum PrimitiveType {

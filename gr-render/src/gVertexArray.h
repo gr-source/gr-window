@@ -11,13 +11,17 @@ namespace grr {
         
         static gVertexArray* Create(u32 bufferSize, u16 stride, bool hasElements);
 
-        static void Use(VertexArray vertex);
+        static u32 CreateBuffer(BufferType target, u32 size, u16 stride);
+
+        static void Bind(u32 index);
 
         static void SetAttrib(u8 index, u16 size, u16 stride, const void* pointer);
 
-        static void UpdateResize(u32 size, u16 stride);
+        static void UpdateResize(u32 index, u32 size, u16 stride);
 
-        static void SetBufferUpdate(u32 offset, u32 size, const void* data);
+        static void SetBufferUpdate(u32 index, u32 offset, u32 size, const void* data);
+
+        static void DrawElementsInstanced(PrimitiveType primitive, u32 count, const void* indices, u32 primcount);
 
         static void DrawElements(PrimitiveType primitive, u32 count, const void* indices);
 
@@ -31,14 +35,13 @@ namespace grr {
     private:
         u32 m_bufferSize;
         u32 m_vao;
-        u32 m_vbo;
-        u32 m_ebo;
 
-        static u32 m_bufferUsage;
         static gVertexArray* m_instance;
 
-        static std::unordered_map<u32, u32> m_vertexArrayMap;
+        static std::unordered_map<BufferType, u32> m_bufferTypeMap;
 
         static std::unordered_map<PrimitiveType, u32> m_primitiveMap;
+
+        static std::unordered_map<u32, u32> m_bufferIndex;
     };
 } // namespace grr

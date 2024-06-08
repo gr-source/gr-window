@@ -35,7 +35,9 @@ namespace grr {
 
         static void RenderPrimitive3D(PrimitiveType primitive, u32 numVertice, void* vertice);
 
-        static void RenderIndexedPrimitive3D(PrimitiveType primitive, u32 numVertice, void* vertice, u32 numIndice, void* indice);
+        static void RenderPrimitive3D(PrimitiveType primitive, u32 numVertice, void* vertice, u32 numIndice, void* indice);
+
+        static void RenderPrimitive3D(PrimitiveType primitive, u32 numVertice, void* vertice, u32 numIndice, void* indice, u32 numPrim, void *prim);
 
         static void OpenGLShutsown();
     private:
@@ -45,6 +47,7 @@ namespace grr {
 
         static gShader* m_shader2D;
         static gShader* m_shader3D;
+        static gShader* m_shaderInstanced3D;
 
         static gVertexArray* m_vertexArray2D;
         static gVertexArray* m_vertexArray3D;

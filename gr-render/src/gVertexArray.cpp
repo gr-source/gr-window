@@ -4,14 +4,14 @@
 #include "gl.h"
 
 namespace grr {
-    gVertexArray::gVertexArray() : m_bufferSize(0), m_vao(-1), m_vbo(-1), m_ebo(-1) {}
+    gVertexArray::gVertexArray() : m_bufferSize(0), m_vao(-1) {}
 
     gVertexArray* gVertexArray::m_instance = nullptr;
-    u32 gVertexArray::m_bufferUsage = -1;
 
-    std::unordered_map<u32, u32> gVertexArray::m_vertexArrayMap {
-        {GR_VBO, GL_ARRAY_BUFFER},
-        {GR_EBO, GL_ELEMENT_ARRAY_BUFFER}
+    std::unordered_map<BufferType, u32> gVertexArray::m_bufferTypeMap {
+        {BufferType_VBO, GL_ARRAY_BUFFER},
+        {BufferType_DEFAULT, GL_ARRAY_BUFFER},
+        {BufferType_EBO, GL_ELEMENT_ARRAY_BUFFER}
     };
 
     std::unordered_map<PrimitiveType, u32> gVertexArray::m_primitiveMap {
@@ -24,41 +24,33 @@ namespace grr {
         {PrimitiveType_TriangleFan, GL_TRIANGLE_FAN}
     };
 
+    std::unordered_map<u32, u32> gVertexArray::m_bufferIndex;
+
     gVertexArray *gVertexArray::Create(u32 bufferSize, u16 stride, bool hasElements) {
         gVertexArray* vertexArray = new gVertexArray();
         vertexArray->m_bufferSize = bufferSize;
 
         GL_CALL(glGenVertexArrays(1, &vertexArray->m_vao));
-        GL_CALL(glBindVertexArray(vertexArray->m_vao));
-
-        if (hasElements) {
-            GL_CALL(glGenBuffers(1, &vertexArray->m_ebo));
-            GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertexArray->m_ebo));
-            GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, bufferSize * sizeof(u32), nullptr, GL_STATIC_DRAW));
-        }
-
-        GL_CALL(glGenBuffers(1, &vertexArray->m_vbo));
-        GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vertexArray->m_vbo));
-        GL_CALL(glBufferData(GL_ARRAY_BUFFER, bufferSize * stride, nullptr, GL_STATIC_DRAW));
-
-        glBindVertexArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         return vertexArray;
     }
 
-    void gVertexArray::Use(VertexArray vertex) {
-        switch (vertex) {
-        case GR_VBO:
-            GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, m_instance->m_vbo));
-            break;
-        case GR_EBO:
-            GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_instance->m_ebo));
-            break;
-        default:
-            break;
-        }
-        m_bufferUsage = m_vertexArrayMap[vertex];
+    u32 gVertexArray::CreateBuffer(BufferType target, u32 size, u16 stride) {
+        u32 m_index = 0;
+        GL_CALL(glGenBuffers(1, &m_index));
+
+        GL_CALL(glBindBuffer(m_bufferTypeMap[target], m_index));
+        GL_CALL(glBufferData(m_bufferTypeMap[target], size * stride, nullptr, GL_STATIC_DRAW));
+
+        GL_CALL(glBindBuffer(m_bufferTypeMap[target], 0));
+
+        m_bufferIndex.emplace(m_index, m_bufferTypeMap[target]);
+
+        return m_index;
+    }
+
+    void gVertexArray::Bind(u32 index) {
+        GL_CALL(glBindBuffer(m_bufferIndex[index], index));
     }
 
     void gVertexArray::SetAttrib(u8 index, u16 size, u16 stride, const void *pointer) {
@@ -66,21 +58,23 @@ namespace grr {
         GL_CALL(glEnableVertexAttribArray(static_cast<GLuint>(index)));
     }
 
-    void gVertexArray::UpdateResize(u32 size, u16 stride) {
+    void gVertexArray::UpdateResize(u32 index, u32 size, u16 stride) {
         int arraySize = 0;
-        GL_CALL(glGetBufferParameteriv(m_bufferUsage, GL_BUFFER_SIZE,  &arraySize));
-        arraySize = (arraySize / stride);
+        GL_CALL(glGetBufferParameteriv(m_bufferIndex[index], GL_BUFFER_SIZE,  &arraySize));
         
-        while (size > arraySize) {
-            GL_CALL(glBufferData(m_bufferUsage, ((arraySize * stride) + (GR_MAX_BLOCK_BUFFER * stride)), nullptr, GL_STATIC_DRAW));
+        while ((size * stride) > arraySize) {
+            GL_CALL(glBufferData(m_bufferIndex[index], (arraySize + (GR_MAX_BLOCK_BUFFER * stride)), nullptr, GL_STATIC_DRAW));
 
-            GL_CALL(glGetBufferParameteriv(m_bufferUsage, GL_BUFFER_SIZE,  &arraySize));
-            arraySize = (arraySize / stride);
+            GL_CALL(glGetBufferParameteriv(m_bufferIndex[index], GL_BUFFER_SIZE,  &arraySize));
         }
     }
 
-    void gVertexArray::SetBufferUpdate(u32 offset, u32 size, const void* data) {
-        GL_CALL(glBufferSubData(m_bufferUsage, offset, size, data));
+    void gVertexArray::SetBufferUpdate(u32 index, u32 offset, u32 size, const void *data) {
+        GL_CALL(glBufferSubData(m_bufferIndex[index], offset, size, data));
+    }
+
+    void gVertexArray::DrawElementsInstanced(PrimitiveType primitive, u32 count, const void *indices, u32 primcount) {
+        GL_CALL(glDrawElementsInstanced(m_primitiveMap[primitive], count, GL_UNSIGNED_INT, indices, primcount));
     }
 
     void gVertexArray::DrawElements(PrimitiveType primitive, u32 count, const void* indices) {
@@ -106,12 +100,6 @@ namespace grr {
     void gVertexArray::destroy() {
         if (m_vao != -1) {
             GL_CALL(glDeleteVertexArrays(1, &m_vao));
-        }
-        if (m_vbo != -1) {
-            GL_CALL(glDeleteBuffers(1, &m_vbo));
-        }
-        if (m_ebo != -1) {
-            GL_CALL(glDeleteBuffers(1, &m_ebo));
         }
         delete this;
     }

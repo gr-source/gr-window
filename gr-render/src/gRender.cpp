@@ -1,5 +1,6 @@
 #include "gRender.h"
 
+#include "gShaderSource.h"
 #include "gVertexArray.h"
 #include "gTexture.h"
 #include "gShader.h"
@@ -8,71 +9,6 @@
 #include "gColor.h"
 
 namespace grr {
-    const char* vertexShader2D = R"(
-        #version 330 core
-
-        layout (location = 0) in vec2 in_pos;
-        layout (location = 1) in vec2 in_texCoord;
-
-        out vec2 m_texCoord;
-
-        uniform mat4 projection;
-
-        void main() {
-            m_texCoord = in_texCoord;
-
-            gl_Position = projection * vec4(in_pos, 0.0, 1.0);
-        }
-    )";
-
-    const char* fragmentShader2D = R"(
-        #version 330 core
-
-        out vec4 FragColor;
-
-        in vec2 m_texCoord;
-
-        uniform sampler2D u_texture;
-
-        void main() {
-            vec4 color = texture(u_texture, m_texCoord);
-            if (color.a < 0.1) {
-                discard;
-            }
-            
-            FragColor = color;
-        }
-    )";
-
-    const char* fragmentShader3D = R"(
-        #version 330 core
-
-        in vec3 m_fragPos;
-
-        out vec4 FragColor;
-
-        void main() {
-            FragColor = vec4(m_fragPos, 1.0);
-        }
-    )";
-
-    const char* vertexShader3D = R"(
-        #version 330 core
-
-        layout (location = 0) in vec3 in_pos;
-
-        out vec3 m_fragPos;
-
-        uniform mat4 projection;
-        uniform mat4 view;
-
-        void main() {
-            gl_Position = projection * view * vec4(in_pos, 1.0);
-
-            m_fragPos = in_pos;
-        }
-    )";
-
     std::unordered_map<BufferBindingTarget, u32> gRender::m_bufferMap {
         {BufferBindingTarget::GR_ARRAY_BUFFER, GL_ARRAY_BUFFER},
         {BufferBindingTarget::GR_ELEMENT_ARRAY_BUFFER, GL_ELEMENT_ARRAY_BUFFER}
@@ -83,9 +19,14 @@ namespace grr {
 
     gShader* gRender::m_shader2D = nullptr;
     gShader* gRender::m_shader3D = nullptr;
+    gShader* gRender::m_shaderInstanced3D = nullptr;
 
     u32 gRender::m_height = 0;
     u32 gRender::m_width = 0;
+
+    u32 indexPrimi3D = 0;
+    u32 indexVbo3D = 0;
+    u32 indexEbo3D = 0;
 
     void gRender::SetRenderState(RenderState state, void *value) {
         switch (state) {
@@ -170,11 +111,19 @@ namespace grr {
         }
         #endif
 
+        #if GR_OPENGLES3
+        const std::string glVersion = "#version 300 es";
+        #else
+        const std::string glVersion = "#version 330 core";
+        #endif
+
         CreateVertexArray2D();
-        m_shader2D = gShader::Create({fragmentShader2D}, {vertexShader2D});
+        m_shader2D = gShader::Create({(glVersion + fragmentShader2D).c_str()}, {(glVersion + vertexShader2D).c_str()});
 
         CreateVertexArray3D();
-        m_shader3D = gShader::Create({fragmentShader3D}, {vertexShader3D});
+        m_shader3D = gShader::Create({(glVersion + fragmentShader3D).c_str()}, {(glVersion + vertexShader3D).c_str()});
+
+        m_shaderInstanced3D = gShader::Create({(glVersion + fragmentShader3D).c_str()}, {(glVersion + vertexShaderInstance3D).c_str()});
 
         return true;
     }
@@ -195,76 +144,111 @@ namespace grr {
     }
 
     void gRender::RenderPrimitive2D(PrimitiveType primitive, u32 numVertice, void *vertice) {
-        m_vertexArray2D->bind();
+        // m_vertexArray2D->bind();
 
-        gVertexArray::Use(GR_VBO);
-        gVertexArray::SetBufferUpdate(0, numVertice * sizeof(gVertex2D), vertice);
+        // gVertexArray::Use(BufferType_VBO);
+        // gVertexArray::SetBufferUpdate(0, numVertice * sizeof(gVertex2D), vertice);
 
-        gVertexArray::DrawArrays(primitive, numVertice);
+        // gVertexArray::DrawArrays(primitive, numVertice);
     }
 
     void gRender::RenderIndexedPrimitive2D(PrimitiveType primitive, u32 numVertice, void *vertice, u32 numIndice, void *indice) {
-        m_vertexArray2D->bind();
+        // m_vertexArray2D->bind();
 
-        gVertexArray::Use(GR_EBO);
-        gVertexArray::SetBufferUpdate(0, numIndice * sizeof(u32), indice);
+        // gVertexArray::Use(BufferType_EBO);
+        // gVertexArray::SetBufferUpdate(0, numIndice * sizeof(u32), indice);
 
-        gVertexArray::Use(GR_VBO);
-        gVertexArray::SetBufferUpdate(0, numVertice * sizeof(gVertex2D), vertice);
+        // gVertexArray::Use(BufferType_VBO);
+        // gVertexArray::SetBufferUpdate(0, numVertice * sizeof(gVertex2D), vertice);
 
-        gVertexArray::DrawElements(primitive, numIndice, nullptr);
+        // gVertexArray::DrawElements(primitive, numIndice, nullptr);
     }
 
     void gRender::Render3D(const Matrix4x4& projection, const Matrix4x4& view) {
-        m_shader3D->bind();
-        m_shader3D->SetUniformMat4("projection", projection);
-        m_shader3D->SetUniformMat4("view", view);
+        m_shaderInstanced3D->bind();
+        m_shaderInstanced3D->SetUniformMat4("projection", projection);
+        m_shaderInstanced3D->SetUniformMat4("view", view);
     }
 
     void gRender::RenderPrimitive3D(PrimitiveType primitive, u32 numVertice, void *vertice) {
         m_vertexArray3D->bind();
 
-        gVertexArray::Use(GR_VBO);
-        gVertexArray::UpdateResize(numVertice, sizeof(gVertex3D));
-        gVertexArray::SetBufferUpdate(0, numVertice * sizeof(gVertex3D), vertice);
+        gVertexArray::Bind(indexVbo3D);
+        gVertexArray::UpdateResize(indexVbo3D, numVertice, sizeof(gVertex3D));
+        gVertexArray::SetBufferUpdate(indexVbo3D, 0, numVertice * sizeof(gVertex3D), vertice);
 
         gVertexArray::DrawArrays(primitive, numVertice);
     }
 
-    void gRender::RenderIndexedPrimitive3D(PrimitiveType primitive, u32 numVertice, void *vertice, u32 numIndice, void *indice) {
+    void gRender::RenderPrimitive3D(PrimitiveType primitive, u32 numVertice, void *vertice, u32 numIndice, void *indice) {
         m_vertexArray3D->bind();
 
-        gVertexArray::Use(GR_EBO);
-        gVertexArray::UpdateResize(numIndice, sizeof(u32));
-        gVertexArray::SetBufferUpdate(0, numIndice * sizeof(u32), indice);
+        gVertexArray::Bind(indexEbo3D);
+        gVertexArray::UpdateResize(indexEbo3D, numIndice, sizeof(u32));
+        gVertexArray::SetBufferUpdate(indexEbo3D, 0, numIndice * sizeof(u32), indice);
 
-        gVertexArray::Use(GR_VBO);
-        gVertexArray::UpdateResize(numVertice, sizeof(gVertex3D));
-        gVertexArray::SetBufferUpdate(0, numVertice * sizeof(gVertex3D), vertice);
+        gVertexArray::Bind(indexVbo3D);
+        gVertexArray::UpdateResize(indexVbo3D, numVertice, sizeof(gVertex3D));
+        gVertexArray::SetBufferUpdate(indexVbo3D, 0, numVertice * sizeof(gVertex3D), vertice);
 
         gVertexArray::DrawElements(primitive, numIndice, nullptr);
     }
 
+    void gRender::RenderPrimitive3D(PrimitiveType primitive, u32 numVertice, void *vertice, u32 numIndice, void *indice, u32 numPrim, void *prim) {
+        m_vertexArray3D->bind();
+
+        gVertexArray::Bind(indexEbo3D);
+        gVertexArray::UpdateResize(indexEbo3D, numIndice, sizeof(u32));
+        gVertexArray::SetBufferUpdate(indexEbo3D, 0, numIndice * sizeof(u32), indice);
+
+        gVertexArray::Bind(indexVbo3D);
+        gVertexArray::UpdateResize(indexVbo3D, numVertice, sizeof(gVertex3D));
+        gVertexArray::SetBufferUpdate(indexVbo3D, 0, numVertice * sizeof(gVertex3D), vertice);
+
+        gVertexArray::Bind(indexPrimi3D);
+        gVertexArray::UpdateResize(indexPrimi3D, numPrim, sizeof(Matrix4x4));
+        gVertexArray::SetBufferUpdate(indexPrimi3D, 0, numPrim * sizeof(Matrix4x4), prim);
+
+        for (int i = 0; i < 4; ++i) {
+            glEnableVertexAttribArray(1 + i);
+            glVertexAttribPointer(1 + i, 4, GL_FLOAT, GL_FALSE, sizeof(Matrix4x4), (GLvoid*)( sizeof(Vector4) * i));
+            glVertexAttribDivisor(1 + i, 1);
+        }
+
+        gVertexArray::DrawElementsInstanced(PrimitiveType_Triangles, numIndice, nullptr, numPrim);
+    }
+
     void gRender::CreateVertexArray2D() {
-        m_vertexArray2D = gVertexArray::Create(MAX_BLOCK_BUFFER, sizeof(gVertex2D), true);
+        // m_vertexArray2D = gVertexArray::Create(MAX_BLOCK_BUFFER, sizeof(gVertex2D), true);
 
-        m_vertexArray2D->bind();
+        // m_vertexArray2D->bind();
 
-        gVertexArray::Use(GR_VBO);
+        // gVertexArray::Use(BufferType_VBO);
 
-        gVertexArray::SetAttrib(0, 2, sizeof(gVertex2D), reinterpret_cast<void*>(offsetof(gVertex2D, position)));
-        gVertexArray::SetAttrib(1, 2, sizeof(gVertex2D), reinterpret_cast<void*>(offsetof(gVertex2D, uv)));
+        // gVertexArray::SetAttrib(0, 2, sizeof(gVertex2D), reinterpret_cast<void*>(offsetof(gVertex2D, position)));
+        // gVertexArray::SetAttrib(1, 2, sizeof(gVertex2D), reinterpret_cast<void*>(offsetof(gVertex2D, uv)));
 
-        m_vertexArray2D->unbind();
+        // m_vertexArray2D->unbind();
     }
 
     void gRender::CreateVertexArray3D() {
         m_vertexArray3D = gVertexArray::Create(MAX_BLOCK_BUFFER, sizeof(gVertex3D), true);
         m_vertexArray3D->bind();
 
-        gVertexArray::Use(GR_VBO);
+        indexEbo3D = gVertexArray::CreateBuffer(BufferType_EBO, MAX_BLOCK_BUFFER, sizeof(u32));
 
+        indexVbo3D = gVertexArray::CreateBuffer(BufferType_VBO, MAX_BLOCK_BUFFER, sizeof(gVertex3D));
+        gVertexArray::Bind(indexVbo3D);
         gVertexArray::SetAttrib(0, 3, sizeof(gVertex3D), reinterpret_cast<void*>(offsetof(gVertex3D, position)));
+
+        indexPrimi3D = gVertexArray::CreateBuffer(BufferType_DEFAULT, MAX_BLOCK_BUFFER, sizeof(Matrix4x4));
+        gVertexArray::Bind(indexPrimi3D);
+
+        for (int i = 0; i < 4; ++i) {
+            glEnableVertexAttribArray(1 + i);
+            glVertexAttribPointer(1 + i, 4, GL_FLOAT, GL_FALSE, sizeof(Matrix4x4), (GLvoid*)(sizeof(Matrix4x4) * i));
+            glVertexAttribDivisor(1 + i, 1);
+        }
 
         m_vertexArray3D->unbind();
     }

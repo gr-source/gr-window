@@ -11,6 +11,7 @@ set(render_src
 )
 
 set(render_hdr
+    src/gShaderSource.h
     src/gVertexArray.h
     src/gVertex2D.h
     src/gVertex3D.h
