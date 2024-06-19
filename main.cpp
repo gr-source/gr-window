@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include <gRender.h>
+#include <gr-render/gRender.h>
 #include <GL/glut.h>
 
 
@@ -86,18 +86,13 @@ std::vector<u32> indices3D {
 float ms = 0;
 static int itemCount = 0;
 
-// std::vector<gVertex3D> vertices;
-// std::vector<u32> indices;
-
 std::vector<Matrix4x4> models;
 
 void init() {
     Vector3 center = {};
 
-    // u32 vertexCount = 0;
-
-    for (int x=0;x<150;x++) {
-        for (int z=0;z<150;z++) {
+    for (int x=0;x<400;x++) {
+        for (int z=0;z<400;z++) {
             Vector3 position(center.x + x * 2.5f, 0.0f, center.z + z * 2.5f);
 
             Matrix4x4 model = Math::translate<Matrix4x4>(position) *
@@ -106,16 +101,11 @@ void init() {
 
             models.push_back(model.transpose());
 
-            // for (const auto& v : vertex3D) {
-            //     vertices.push_back({model * Vector4(v.position, 1.0f)});
-            // }
-            // for (const auto& i : indices3D) {
-            //     indices.push_back(vertexCount + i);
-            // }
-            // vertexCount += vertex3D.size();
             itemCount++;
         }
     }
+
+    std::cout << itemCount << std::endl;
 }
 
 void render() {
