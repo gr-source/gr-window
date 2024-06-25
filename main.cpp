@@ -1,8 +1,11 @@
 #include "timer.h"
 
 #include <iostream>
+#include <fstream>
 
 #include <gr-render/gRender.h>
+#include <gr-render/gShader.h>
+
 #include <GL/glut.h>
 
 
@@ -33,7 +36,7 @@ void Keyboard(unsigned char key, int x, int y) {
         camPos -= right * 10.0f * Time::deltaTime;
     }
 
-    glutPostRedisplay();
+    // glutPostRedisplay();
 }
 
 Vector2 mousePos;
@@ -83,29 +86,23 @@ std::vector<u32> indices3D {
     3, 1, 5
 };
 
-float ms = 0;
-static int itemCount = 0;
+gShader* m_shader = nullptr;
 
-std::vector<Matrix4x4> models;
+const std::string getFileContent(const std::string& path) {
+    std::ifstream is(path);
+
+    std::string content((std::istreambuf_iterator<char>(is)), std::istreambuf_iterator<char>());
+    is.close();
+    return content;
+}
 
 void init() {
-    Vector3 center = {};
+    auto frag = getFileContent("../res/shader/default.frag");
+    auto vert = getFileContent("../res/shader/default.vert");
 
-    for (int x=0;x<400;x++) {
-        for (int z=0;z<400;z++) {
-            Vector3 position(center.x + x * 2.5f, 0.0f, center.z + z * 2.5f);
+    m_shader = gShader::Create({frag.c_str()}, {vert.c_str()});
 
-            Matrix4x4 model = Math::translate<Matrix4x4>(position) *
-                Math::rotate<Matrix4x4>(Quaternion::identity) *
-                Math::scale<Matrix4x4>(Vector3::one);
-
-            models.push_back(model.transpose());
-
-            itemCount++;
-        }
-    }
-
-    std::cout << itemCount << std::endl;
+    std::cout << frag << std::endl;
 }
 
 void render() {
@@ -122,6 +119,11 @@ void render() {
     Matrix4x4 projection = Math::perspective(Math::rad(90.0f), ((float)m_width / m_height), 1000.0f, 0.01f);
     Matrix4x4 view = Math::lookAt(camPos, camPos + forward, up);
 
+    Matrix4x4 model = 
+        Math::translate<Matrix4x4>(Vector3::zero) *
+        Math::rotate<Matrix4x4>(Quaternion::identity) *
+        Math::scale<Matrix4x4>(Vector3::one);
+
     gRender::SetRenderState(GR_BACKGROUND_COLOR, (void*)&gColor::black);
     gRender::SetRenderState(GR_BACKGROUND, GR_COLOR_BUFFER | GR_DEPTH_BUFFER);
     gRender::SetRenderState(GR_VIEWPORT, (void*)&screenSize);
@@ -129,16 +131,17 @@ void render() {
     gRender::SetRenderState(GR_CULL_FACE, GR_TRUE);
     gRender::SetRenderState(GR_CULL, GR_BACK);
 
-    gRender::Render3D(projection, view);
+    m_shader->bind();
 
-    gRender::RenderPrimitive3D(PrimitiveType_Triangles, vertex3D.size(), vertex3D.data(), indices3D.size(), indices3D.data(), models.size(), models.data());
+    gShader::SetUniform("projection", 1, projection);
+    gShader::SetUniform("view", 1, view);
 
-    ms += Time::deltaTime;
-    if (ms >= 1.f) {
-        ms = 0;
-    }
+    gShader::SetUniform("model", 1, model);
+
+    gRender::RenderPrimitive3D(PrimitiveType_Triangles, vertex3D.size(), vertex3D.data(), indices3D.size(), indices3D.data());
 
     glutSwapBuffers();
+    glutPostRedisplay();
 }
 
 void framebufferSize(int width, int height) {
@@ -161,11 +164,12 @@ int main(int argc, char** argv) {
 
     init();
 
+    glutDisplayFunc(render);
     glutMotionFunc(motion);
     glutMouseFunc(MouseButton);
     glutKeyboardFunc(Keyboard);
     glutReshapeFunc(framebufferSize);
-    glutIdleFunc(render);
+    // glutIdleFunc(render);
 
     glutMainLoop();
     return 0;
